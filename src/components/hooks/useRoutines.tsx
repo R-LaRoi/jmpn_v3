@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 
 export type Routine = {
-  _id: string
+  _id?: string
+  id?: string
   user_id: string
   content: string
   date: string
@@ -16,7 +17,7 @@ export function useRoutines() {
   useEffect(() => {
     setLoading(true)
     fetch('/api/routines', {
-      credentials: 'include', // if you use cookies; add Authorization header if using JWT
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch routines')
@@ -32,7 +33,7 @@ export function useRoutines() {
       const res = await fetch('/api/routines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // if you use cookies; add Authorization header if using JWT
+        credentials: 'include',
         body: JSON.stringify({ content }),
       })
       if (!res.ok) throw new Error('Failed to add routine')
@@ -44,5 +45,11 @@ export function useRoutines() {
     }
   }
 
-  return { routines, loading, error, addRoutine }
+  const fetchMonthlyRoutines = async (date: Date) => {
+    // You should implement this to fetch routines for a specific month!
+    // For now, it's a stub:
+    // setRoutines(await fetch(...))
+  }
+
+  return { routines, loading, error, addRoutine, fetchMonthlyRoutines }
 }

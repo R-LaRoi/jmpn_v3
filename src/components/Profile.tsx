@@ -6,7 +6,7 @@ type UserProfile = {
   // add other fields if needed
 }
 
-export function ProfilePage() {
+export function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -16,11 +16,9 @@ export function ProfilePage() {
       try {
         const res = await fetch('/api/user/profile', {
           headers: {
-            // If you use JWT in localStorage, pass it here:
-            // 'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
-          credentials: 'include', // if you use httpOnly cookies for auth
+          credentials: 'include',
         })
         if (!res.ok) throw new Error('Failed to fetch profile')
         const data = await res.json()
@@ -49,8 +47,6 @@ export function ProfilePage() {
         <label className="block text-sm font-semibold">Email</label>
         <div className="mt-1">{profile.email}</div>
       </div>
-      {/* Add more fields as needed */}
-      {/* Add edit form here if you want users to update their info */}
     </div>
   )
 }

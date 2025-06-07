@@ -1,13 +1,14 @@
-import express from 'express'
+import express, { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import Profile from '../models/profiles'
-import { IProfile } from '../models/profiles'; 
+import { IProfile } from '../models/profiles'
+
 const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme'
 
 // Signup
-router.post('/signup', async (req, res) => {
+router.post('/signup', async (req: Request, res: Response) => {
   const { email, password, full_name } = req.body
   try {
     const existing = await Profile.findOne({ email })
@@ -22,13 +23,13 @@ router.post('/signup', async (req, res) => {
 })
 
 // Signin
-router.post('/signin', async (req, res) => {
+router.post('/signin', async (req: Request, res: Response) => {
   const { email, password } = req.body
   try {
-    const profile = await Profile.findOne({ email }) as IProfile; // Cast to IProfile
+    const profile = await Profile.findOne({ email }) as IProfile
     if (!profile) return res.status(400).json({ error: 'Invalid email or password' })
-    if (!profile.password) return res.status(400).json({ error: 'Invalid email or password' });
-    const valid = await bcrypt.compare(password, profile.password);
+    if (!profile.password) return res.status(400).json({ error: 'Invalid email or password' })
+    const valid = await bcrypt.compare(password, profile.password)
     if (!valid) return res.status(400).json({ error: 'Invalid email or password' })
     const token = jwt.sign({ id: profile._id, email: profile.email }, JWT_SECRET, { expiresIn: '7d' })
     res.json({ message: 'Signed in!', token })
@@ -38,7 +39,7 @@ router.post('/signin', async (req, res) => {
 })
 
 // Reset (send email etc, left as stub)
-router.post('/reset', async (req, res) => {
+router.post('/reset', async (req: Request, res: Response) => {
   // In production: send email with reset link/token.
   res.json({ message: 'Password reset link sent (not implemented)' })
 })

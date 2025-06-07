@@ -4,7 +4,7 @@ import { useAuth } from './components/hooks/useAuth'
 import { AuthForm } from './components/auth/AuthForm'
 import { Layout } from './components/Layout'
 import { Dashboard } from './components/Dashboard'
-import { Profile } from './components/hooks/useProfile'
+import { Profile } from './components/Profile'
 import { History } from './components/History'
 
 function App() {
