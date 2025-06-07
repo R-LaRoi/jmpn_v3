@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './components/hooks/useAuth'
-import { AuthForm } from './components/auth/AuthForm'
+import AuthForm from './components/auth/AuthForm'
 import { Layout } from './components/Layout'
 import { Dashboard } from './components/Dashboard'
 import { Profile } from './components/Profile'

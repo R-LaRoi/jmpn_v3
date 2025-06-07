@@ -46,9 +46,7 @@ export function useRoutines() {
   }
 
   const fetchMonthlyRoutines = async (date: Date) => {
-    // You should implement this to fetch routines for a specific month!
-    // For now, it's a stub:
-    // setRoutines(await fetch(...))
+
   }
 
   return { routines, loading, error, addRoutine, fetchMonthlyRoutines }
