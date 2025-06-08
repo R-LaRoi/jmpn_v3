@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Plus, Calendar, User } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 
-// These hooks should be updated to fetch from your new MongoDB/Mongoose API endpoints
+
 import { useRoutines } from './hooks/useRoutines'
 import { useProfile } from './hooks/useProfile'
 

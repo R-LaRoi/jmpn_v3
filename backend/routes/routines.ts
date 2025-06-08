@@ -1,5 +1,5 @@
 import express from 'express';
-import Routine from '../models/routines';
+import Routine from '../models/routines.ts';
 const router = express.Router();
 
 // Get routines for user

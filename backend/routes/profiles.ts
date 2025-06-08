@@ -1,6 +1,7 @@
-import express from 'express';
-import Profile from '../models/profiles';
-const router = express.Router();
+import { Router } from 'express';
+import Profile from '../models/profiles.ts';
+
+const router = Router();
 
 // Get own profile
 router.get('/:id', async (req, res) => {

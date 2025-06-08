@@ -1,8 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import Profile from '../models/profiles';
-import cookieParser from 'cookie-parser'
+import Profile from '../models/profiles.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
 const router = Router();
@@ -13,9 +12,9 @@ const getUserData = (profile: any) => ({
   email: profile.email,
   full_name: profile.full_name,
 });
-app.use(cookieParser());
+
 // Signup
-router.post('/signup', async (req: Request, res: Response) => {
+router.post('/signup', async (req, res) => {
   const { email, password, full_name } = req.body;
   try {
     const existing = await Profile.findOne({ email });
@@ -33,7 +32,7 @@ router.post('/signup', async (req: Request, res: Response) => {
 });
 
 // Signin
-router.post('/signin', async (req: Request, res: Response) => {
+router.post('/signin', async (req, res) => {
   const { email, password } = req.body;
   try {
     const profile = await Profile.findOne({ email });
@@ -49,7 +48,7 @@ router.post('/signin', async (req: Request, res: Response) => {
 });
 
 // Get current user
-router.get('/me', async (req: Request, res: Response) => {
+router.get('/me', async (req, res) => {
   try {
     const token = req.cookies?.token;
     if (!token) return res.status(401).json({ error: 'Not authenticated' });
@@ -63,13 +62,13 @@ router.get('/me', async (req: Request, res: Response) => {
 });
 
 // Signout
-router.post('/signout', (req: Request, res: Response) => {
+router.post('/signout', (req, res) => {
   res.clearCookie('token', { httpOnly: true, sameSite: 'lax' });
   res.json({ message: 'Signed out' });
 });
 
-// Password reset 
-router.post('/reset', async (req: Request, res: Response) => {
+// Password reset (not implemented)
+router.post('/reset', async (req, res) => {
   res.json({ message: 'Password reset link sent (not implemented)' });
 });
 
