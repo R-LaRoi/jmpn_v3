@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 
+
 export default function AuthForm() {
   const { signup, signin, loading, error } = useAuth();
   const [mode, setMode] = useState<"signup" | "signin">("signup");

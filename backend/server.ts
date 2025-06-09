@@ -6,12 +6,14 @@ import authRoutes from "./routes/auth.ts";
 import profileRoutes from "./routes/profiles.ts"; 
 
 dotenv.config();
+console.log("MONGO_URI:", process.env.MONGO_URI);
+console.log("MONGODB_URI:", process.env.MONGODB_URI);
 
 const app = express();
 app.use(express.json());
 
 // MongoDB connection
-const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/jmpn-fit";
+const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/jmpn_native";
 mongoose
   .connect(mongoUri)
   .then(() => console.log("MongoDB connected"))

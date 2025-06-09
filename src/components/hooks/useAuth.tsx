@@ -36,6 +36,9 @@ export function useAuth() {
         credentials: 'include',
         body: JSON.stringify({ email, password, full_name }),
       })
+
+
+
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Signup failed')
       setUser(data.user || data) // adjust as per your backend response
