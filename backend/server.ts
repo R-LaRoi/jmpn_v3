@@ -1,46 +1,48 @@
-import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+import express from 'express';
+import Routine from './models/routines.ts';
+const router = express.Router();
 
-import authRoutes from "./routes/auth.ts";
-import profileRoutes from "./routes/profiles.ts"; 
-
-dotenv.config();
-console.log("MONGO_URI:", process.env.MONGO_URI);
-console.log("MONGODB_URI:", process.env.MONGODB_URI);
-
-const app = express();
-app.use(express.json());
-
-// MongoDB connection
-const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/jmpn_native";
-mongoose
-  .connect(mongoUri)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/profile", profileRoutes);
-
-// Mock endpoints (replace with real implementations as needed)
-app.post("/api/password-reset", (req, res) => {
-  res.status(200).json({ message: "Password reset email sent (mock)" });
+// Get routines for user
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const routines = await Routine.find({ user_id: req.params.user_id }).sort({ date: -1 });
+    res.json(routines);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch routines' });
+  }
 });
 
-app.get("/api/user/profile", (req, res) => {
-  res.json({ email: "demo@example.com", fullName: "Demo User" });
+// Create routine
+router.post('/', async (req, res) => {
+  try {
+    const routine = new Routine(req.body);
+    await routine.save();
+    res.status(201).json(routine);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to create routine' });
+  }
 });
 
-app.get("/api/routines", (req, res) => {
-  res.json([]);
+// Update routine
+router.put('/:id', async (req, res) => {
+  try {
+    const routine = await Routine.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!routine) return res.status(404).json({ error: 'Routine not found' });
+    res.json(routine);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update routine' });
+  }
 });
 
-app.post("/api/routines", (req, res) => {
-  res
-    .status(201)
-    .json({ ...req.body, _id: "mockid", created_at: new Date().toISOString() });
+// Delete routine
+router.delete('/:id', async (req, res) => {
+  try {
+    const routine = await Routine.findByIdAndDelete(req.params.id);
+    if (!routine) return res.status(404).json({ error: 'Routine not found' });
+    res.json({ message: 'Routine deleted' });
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to delete routine' });
+  }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`API listening on :${PORT}`));
+export default router;

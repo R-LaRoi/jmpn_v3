@@ -1,19 +1,21 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IProfile extends Document {
-  email: string;
-  full_name: string;
-  phone: string;
-  avatar_url?: string;
-  created_at: Date;
+export interface IRoutine extends Document {
+  duration: string;
+  type: string;
+  level: string;
+  date: string;
+  weekday: string;
+  exercises: string[];
 }
 
-const ProfileSchema: Schema = new Schema({
-  email: { type: String, required: true },
-  full_name: { type: String, default: '' },
-  phone: { type: String, default: '' },
-  avatar_url: { type: String },
-  created_at: { type: Date, default: Date.now }
+const routineSchema: Schema = new Schema({
+  duration: { type: String, required: true },
+  type: { type: String, required: true },
+  level: { type: String, required: true },
+  date: { type: String, required: true },
+  weekday: { type: String, required: true },
+  exercises: { type: [String], required: true },
 });
 
-export default mongoose.model<IProfile>('Profile', ProfileSchema);
+export default mongoose.model<IRoutine>('routines', routineSchema);
