@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 
+// Add API base URL
+const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000'
+
 export type User = {
   _id: string
   email: string
@@ -15,13 +18,29 @@ export function useAuth() {
   // Fetch the currently authenticated user on mount
   useEffect(() => {
     setLoading(true)
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((res) => {
-        if (!res.ok) throw new Error('Not authenticated')
+    fetch(`${API_BASE_URL}/api/auth/me`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Not authenticated')
+        }
         return res.json()
       })
-      .then((data) => setUser(data))
-      .catch(() => setUser(null))
+      .then((data) => {
+        console.log('User authenticated:', data)
+        setUser(data)
+        setError(null)
+      })
+      .catch((err) => {
+        console.log('Authentication check failed:', err.message)
+        setUser(null)
+        setError(null) // Don't show error for initial auth check
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -29,24 +48,29 @@ export function useAuth() {
   const signup = async (email: string, password: string, full_name: string) => {
     setLoading(true)
     setError(null)
+
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email, password, full_name }),
       })
 
-
-
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Signup failed')
-      setUser(data.user || data) // adjust as per your backend response
-      return data
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Signup failed')
+      }
+
+      console.log('Signup successful:', data)
+      setUser(data.user)
+      return { success: true, message: data.message }
     } catch (err: any) {
+      console.error('Signup error:', err.message)
       setError(err.message)
       setUser(null)
-      return null
+      return { success: false, error: err.message }
     } finally {
       setLoading(false)
     }
@@ -56,21 +80,29 @@ export function useAuth() {
   const signin = async (email: string, password: string) => {
     setLoading(true)
     setError(null)
+
     try {
-      const res = await fetch('/api/auth/signin', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email, password }),
       })
+
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Signin failed')
-      setUser(data.user || data) // adjust as per your backend response
-      return data
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Signin failed')
+      }
+
+      console.log('Signin successful:', data)
+      setUser(data.user)
+      return { success: true, message: data.message }
     } catch (err: any) {
+      console.error('Signin error:', err.message)
       setError(err.message)
       setUser(null)
-      return null
+      return { success: false, error: err.message }
     } finally {
       setLoading(false)
     }
@@ -80,16 +112,49 @@ export function useAuth() {
   const signOut = async () => {
     setLoading(true)
     setError(null)
+
     try {
-      await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' })
+      const res = await fetch(`${API_BASE_URL}/api/auth/signout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Signout failed')
+      }
+
+      console.log('Signout successful')
       setUser(null)
-      window.location.href = '/signin'
+      setError(null)
+
+      return { success: true }
     } catch (err: any) {
+      console.error('Signout error:', err.message)
       setError(err.message)
+      return { success: false, error: err.message }
     } finally {
       setLoading(false)
     }
   }
 
-  return { user, loading, error, signup, signin, signOut }
+  // Helper function to check if user is authenticated
+  const isAuthenticated = !!user && !loading
+
+  // Helper function to get user ID
+  const getUserId = () => user?._id || null
+
+  return {
+    user,
+    loading,
+    error,
+    signup,
+    signin,
+    signOut,
+    isAuthenticated,
+    getUserId
+  }
 }

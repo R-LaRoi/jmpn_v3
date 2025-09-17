@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.parallax-container {
+  perspective: 1px;
+  height: 120vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.parallax-element {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.parallax-back {
+  transform: translateZ(-1px) scale(2);
+}
+
+.parallax-base {
+  transform: translateZ(0);
+}
+
+.fixed-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.scroll-indicator {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  z-index: 20;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+.bg-image-moving {
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
+  will-change: transform;
+}
+
+/* Avatar positioning and animations */
+
+.floating-avatars .avatar {
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+/* Heart image container */
+.heart-image {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #ff1b6b 0%, #ffd23f 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 2rem auto;
+  position: relative;
+  z-index: 5;
+}
+
+.heart-icon {
+  width: 60px;
+  height: 60px;
+  background: white;
+  position: relative;
+  transform: rotate(45deg);
+}
+
+.heart-icon::before,
+.heart-icon::after {
+  content: "";
+  width: 60px;
+  height: 60px;
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+}
+
+.heart-icon::before {
+  top: -30px;
+  left: 0;
+}
+
+.heart-icon::after {
+  top: 0;
+  left: -30px;
+}

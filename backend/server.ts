@@ -1,14 +1,22 @@
-import express from "express";
-import connectDB from "./config/db.js";
-import { Profile } from "./models/profileSchema.js";
-// import { Routine } from "./models/routineSchema.js";
+import express, { Request, Response, NextFunction } from "express";
+import connectDB from "./config/db";
+import { Profile } from "./models/profileSchema";
 import cors from "cors";
-import bcrypt from "bcryptjs"; // Changed from bcrypt to bcryptjs
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
+
+// Extend Request interface to include user property
+interface AuthenticatedRequest extends Request {
+  user?: {
+    ProfileId: string;
+    email: string;
+  };
+}
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -18,11 +26,18 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
-app.use(cors());
+// CORS configuration to allow credentials
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Changed from 3000 to 5173
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Helper function to safely get error message
 const getErrorMessage = (error: unknown): string => {
@@ -32,13 +47,155 @@ const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
+// JWT Authentication Middleware
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  // Check for token in cookie first, then Authorization header
+  const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    res.status(401).json({ error: "Access token required" });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { ProfileId: string; email: string };
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(403).json({ error: "Invalid or expired token" });
+    return;
+  }
+};
+
 // Routes
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
   res.send({ data: "started" });
 });
 
-app.post("/register", async (req, res) => {
-  console.log("Server: /register endpoint called");
+// Updated signup endpoint to match frontend
+app.post("/api/auth/signup", async (req: Request, res: Response) => {
+  console.log("Server: /api/auth/signup endpoint called");
+  const { email, password, full_name } = req.body;
+
+  try {
+    const activeProfile = await Profile.findOne({ email });
+    if (activeProfile) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+
+    const saltRounds = 10;
+    const encryptedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newProfile = await Profile.create({ 
+      username: full_name, // Map full_name to username
+      email, 
+      password: encryptedPassword 
+    });
+
+    // Create JWT token
+    const token = jwt.sign(
+      { ProfileId: newProfile._id, email: newProfile.email },
+      JWT_SECRET,
+      { expiresIn: "7d" } // Longer expiry for better UX
+    );
+
+    // Set token as httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        _id: newProfile._id,
+        email: newProfile.email,
+        full_name: newProfile.username
+      }
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+// Updated signin endpoint to match frontend
+app.post("/api/auth/signin", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  try {
+    const activeProfile = await Profile.findOne({ email });
+    if (!activeProfile) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, activeProfile.password);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { ProfileId: activeProfile._id, email: activeProfile.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Set token as httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    console.log("User signed in:", activeProfile._id.toString());
+
+    res.json({
+      message: "Signed in successfully",
+      user: {
+        _id: activeProfile._id,
+        email: activeProfile.email,
+        full_name: activeProfile.username
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+// New /me endpoint to get current user
+app.get("/api/auth/me", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    const user = await Profile.findById(req.user.ProfileId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      _id: user._id,
+      email: user.email,
+      full_name: user.username
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+// New signout endpoint
+app.post("/api/auth/signout", (req: Request, res: Response) => {
+  res.clearCookie('token');
+  res.json({ message: "Signed out successfully" });
+});
+
+// Keep legacy endpoints for backward compatibility
+app.post("/register", async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
   try {
@@ -62,7 +219,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.post("/login-user", async (req, res) => {
+app.post("/login-user", async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
@@ -115,7 +272,8 @@ function createObjectId(idString: string): mongoose.Types.ObjectId | null {
   }
 }
 
-app.post("/save-routine", async (req, res) => {
+// Protected route - save routine (now requires authentication)
+app.post("/save-routine", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log("Received data:", req.body);
     const {
@@ -128,12 +286,20 @@ app.post("/save-routine", async (req, res) => {
       exercises,
     } = req.body;
 
-    if (!userIdString) {
-      return res.status(400).json({ error: "userId is required" });
+    if (!req.user) {
+      return res.status(401).json({ error: "User not authenticated" });
     }
 
-    if (!mongoose.isValidObjectId(userIdString)) {
+    // Use authenticated user's ID if not provided
+    const userId = userIdString || req.user.ProfileId;
+
+    if (!mongoose.isValidObjectId(userId)) {
       return res.status(400).json({ error: "Invalid userId format" });
+    }
+
+    // Ensure user can only save routines for themselves
+    if (userId !== req.user.ProfileId.toString()) {
+      return res.status(403).json({ error: "Cannot save routine for another user" });
     }
 
     // Validate exercises format
@@ -148,7 +314,7 @@ app.post("/save-routine", async (req, res) => {
       typeof ex === "string" ? ex : String(ex)
     );
 
-    const userId = new mongoose.Types.ObjectId(userIdString);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Create the new routine object with validated data
     const newRoutine = {
@@ -163,7 +329,7 @@ app.post("/save-routine", async (req, res) => {
     console.log("Formatted routine to save:", newRoutine);
 
     // Find the user first
-    const user = await Profile.findById(userId);
+    const user = await Profile.findById(userObjectId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -184,9 +350,19 @@ app.post("/save-routine", async (req, res) => {
   }
 });
 
-app.get("/weekly-routines/:userId", async (req, res) => {
+// Protected route - get weekly routines
+app.get("/weekly-routines/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.params.userId;
+
+    if (!req.user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Ensure user can only access their own routines
+    if (userId !== req.user.ProfileId.toString()) {
+      return res.status(403).json({ error: "Cannot access another user's routines" });
+    }
 
     // Validate userId format
     if (!mongoose.isValidObjectId(userId)) {
@@ -206,9 +382,19 @@ app.get("/weekly-routines/:userId", async (req, res) => {
   }
 });
 
-app.get("/routine/:userId/:routineId", async (req, res) => {
+// Protected route - get specific routine
+app.get("/routine/:userId/:routineId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, routineId } = req.params;
+
+    if (!req.user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Ensure user can only access their own routines
+    if (userId !== req.user.ProfileId.toString()) {
+      return res.status(403).json({ error: "Cannot access another user's routine" });
+    }
 
     console.log(
       "Fetching routine details for userId:",
@@ -243,9 +429,19 @@ app.get("/routine/:userId/:routineId", async (req, res) => {
   }
 });
 
-app.get("/monthly-routines/:userId", async (req, res) => {
+// Protected route - get monthly routines
+app.get("/monthly-routines/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.params.userId;
+
+    if (!req.user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Ensure user can only access their own routines
+    if (userId !== req.user.ProfileId.toString()) {
+      return res.status(403).json({ error: "Cannot access another user's routines" });
+    }
 
     if (!mongoose.isValidObjectId(userId)) {
       return res.status(400).json({ error: "Invalid userId format" });

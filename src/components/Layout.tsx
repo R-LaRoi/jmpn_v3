@@ -17,6 +17,20 @@ export function Layout({ children }: LayoutProps) {
     { name: 'History', href: '/history', icon: Calendar },
   ]
 
+  const handleSignOut = async () => {
+    console.log('Signout button clicked')
+    try {
+      const result = await signOut()
+      console.log('Signout result:', result)
+      if (result.success) {
+        // Force a page reload to ensure clean state
+        window.location.href = '/'
+      }
+    } catch (error) {
+      console.error('Signout error:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
@@ -47,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
               })}
 
               <button
-                onClick={signOut}
+                onClick={handleSignOut}
                 className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               >
                 <LogOut className="w-4 h-4 mr-2" />
