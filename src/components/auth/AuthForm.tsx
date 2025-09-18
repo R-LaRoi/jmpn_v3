@@ -25,7 +25,6 @@ export default function AuthForm() {
     if (mode === "signup") {
       const result = await signup(email, password, fullName);
       if (result?.success) {
-        // Remove the success message - user will be redirected
         setEmail("");
         setFullName("");
         setPassword("");
@@ -35,7 +34,6 @@ export default function AuthForm() {
     } else {
       const result = await signin(email, password);
       if (result?.success) {
-        // Remove the success message - user will be redirected
         setEmail("");
         setPassword("");
       } else if (result?.error) {
@@ -44,145 +42,131 @@ export default function AuthForm() {
     }
   };
 
-  // Remove the confirmation display - user will be redirected instead
-  // if (isAuthenticated && user) {
-  //   return (
-  //     <div>
-  //       <h2>Welcome, {user.full_name}!</h2>
-  //       <p>Email: {user.email}</p>
-  //       <p>You are successfully authenticated.</p>
-  //     </div>
-  //   );
-  // }
-
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "1rem" }}>
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            style={{
-              marginRight: "0.5rem",
-              backgroundColor: mode === "signup" ? "#007bff" : "#6c757d",
-              color: "white",
-              border: "none",
-              padding: "0.5rem 1rem",
-              borderRadius: "4px",
-              cursor: "pointer"
-            }}
-          >
-            Sign Up
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("signin")}
-            style={{
-              backgroundColor: mode === "signin" ? "#007bff" : "#6c757d",
-              color: "white",
-              border: "none",
-              padding: "0.5rem 1rem",
-              borderRadius: "4px",
-              cursor: "pointer"
-            }}
-          >
-            Sign In
-          </button>
-        </div>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#2c2d2b' }}>
+      <div className="flex flex-col items-center w-full max-w-md px-8">
+        {/* Logo */}
+        <img
+          src="/assets/boltjmpn.png"
+          alt="Logo"
+          className="w-32 h-32 mb-10 rounded-full border-4 border-gray-500 object-cover"
+        />
 
-        <div style={{ marginBottom: "1rem" }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "0.5rem",
-              border: "1px solid #ccc",
-              borderRadius: "4px"
-            }}
-          />
-        </div>
+        {/* Form Container */}
+        <div className="w-full flex flex-col items-center">
+          {/* Title */}
+          <h2 className="text-2xl font-bold text-white mb-8">
+            {mode === "signup" ? "Register" : "Sign In"}
+          </h2>
 
-        {mode === "signup" && (
-          <div style={{ marginBottom: "1rem" }}>
+          {/* Mode Toggle Buttons */}
+          <div className="flex mb-6 w-full">
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`flex-1 py-3 px-4 rounded-l-full font-semibold transition-colors ${mode === "signup"
+                ? "bg-pink-600 text-white"
+                : "bg-gray-600 text-gray-300"
+                }`}
+              style={{ backgroundColor: mode === "signup" ? '#F9004C' : '#6c757d' }}
+            >
+              Sign Up
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("signin")}
+              className={`flex-1 py-3 px-4 rounded-r-full font-semibold transition-colors ${mode === "signin"
+                ? "bg-pink-600 text-white"
+                : "bg-gray-600 text-gray-300"
+                }`}
+              style={{ backgroundColor: mode === "signin" ? '#F9004C' : '#6c757d' }}
+            >
+              Sign In
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="w-full">
+            {/* Email Input */}
             <input
-              type="text"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               required
+              className="w-full p-4 mb-4 text-white text-base rounded-full border-none outline-none placeholder-white placeholder-opacity-50"
               style={{
-                width: "100%",
-                padding: "0.5rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px"
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
               }}
             />
-          </div>
-        )}
 
-        <div style={{ marginBottom: "1rem" }}>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "0.5rem",
-              border: "1px solid #ccc",
-              borderRadius: "4px"
-            }}
-          />
+            {/* Full Name Input (only for signup) */}
+            {mode === "signup" && (
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                required
+                className="w-full p-4 mb-4 text-white text-base rounded-full border-none outline-none placeholder-white placeholder-opacity-50"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                }}
+              />
+            )}
+
+            {/* Password Input */}
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              className="w-full p-4 mb-6 text-white text-base rounded-full border-none outline-none placeholder-white placeholder-opacity-50"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              }}
+            />
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 px-10 text-white text-lg font-bold rounded-full transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: '#F9004C' }}
+            >
+              {loading ? "Processing..." : (mode === "signup" ? "Sign Up" : "Sign In")}
+            </button>
+
+            {/* Toggle Mode Link */}
+            <button
+              type="button"
+              onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+              className="text-gray-200 text-base mt-5 bg-transparent border-none cursor-pointer"
+            >
+              {mode === "signup"
+                ? "Already have an account? Sign in."
+                : "Don't have an account? Sign up."}
+            </button>
+          </form>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg w-full text-center">
+              {error}
+            </div>
+          )}
+
+          {/* Success Message */}
+          {message && (
+            <div className={`mt-4 p-3 rounded-lg w-full text-center ${message.includes("success")
+              ? "bg-green-100 border border-green-400 text-green-700"
+              : "bg-red-100 border border-red-400 text-red-700"
+              }`}>
+              {message}
+            </div>
+          )}
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "0.75rem",
-            backgroundColor: loading ? "#6c757d" : "#28a745",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontSize: "1rem"
-          }}
-        >
-          {loading ? "Processing..." : (mode === "signup" ? "Sign Up" : "Sign In")}
-        </button>
-
-        {error && (
-          <div style={{
-            color: "red",
-            marginTop: "1rem",
-            padding: "0.5rem",
-            backgroundColor: "#f8d7da",
-            border: "1px solid #f5c6cb",
-            borderRadius: "4px"
-          }}>
-            {error}
-          </div>
-        )}
-
-        {message && (
-          <div style={{
-            color: message.includes("success") ? "green" : "red",
-            marginTop: "1rem",
-            padding: "0.5rem",
-            backgroundColor: message.includes("success") ? "#d4edda" : "#f8d7da",
-            border: `1px solid ${message.includes("success") ? "#c3e6cb" : "#f5c6cb"}`,
-            borderRadius: "4px"
-          }}>
-            {message}
-          </div>
-        )}
-      </form>
+      </div>
     </div>
   );
 }

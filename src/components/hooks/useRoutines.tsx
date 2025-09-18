@@ -3,10 +3,15 @@ import { useEffect, useState } from 'react'
 export type Routine = {
   _id?: string
   id?: string
-  user_id: string
-  content: string
+  user_id?: string
+  content?: string
   date: string
-  created_at: string
+  created_at?: string
+  duration: string
+  type: string
+  level: string
+  weekday: string
+  exercises: string[]
 }
 
 export function useRoutines() {

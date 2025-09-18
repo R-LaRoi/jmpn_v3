@@ -1,108 +1,159 @@
-import React, { useState } from 'react'
-import { Plus, Calendar, User } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
-
-
-import { useRoutines } from './hooks/useRoutines'
+import React from 'react'
+import { Calendar, User } from 'lucide-react'
+import { format, parseISO, subDays } from 'date-fns'
+import { useRoutines, Routine } from './hooks/useRoutines'
 import { useProfile } from './hooks/useProfile'
+import RoutineForm from './RoutineForm'
+
+interface DayData {
+  dayName: string
+  date: string
+  hasRoutine: boolean
+  routine?: Routine
+}
 
 export function Dashboard() {
-  const { routines, loading, addRoutine } = useRoutines()
+  const { routines, loading } = useRoutines()
   const { profile } = useProfile()
-  const [routineInput, setRoutineInput] = useState('')
-  const [submitting, setSubmitting] = useState(false)
 
-  const handleAddRoutine = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!routineInput.trim()) return
+  // Generate last 7 days
+  const getLastSevenDays = (): DayData[] => {
+    const days: DayData[] = []
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(new Date(), i)
+      const dayName = format(date, 'EEEE').toLowerCase()
+      const dateString = format(date, 'yyyy-MM-dd')
 
-    setSubmitting(true)
-    const result = await addRoutine(routineInput)
-    if (result.success) {
-      setRoutineInput('')
+      // Find routine for this day
+      const dayRoutine = routines.find(routine =>
+        format(parseISO(routine.date), 'yyyy-MM-dd') === dateString
+      )
+
+      days.push({
+        dayName,
+        date: dateString,
+        hasRoutine: !!dayRoutine,
+        routine: dayRoutine
+      })
     }
-    setSubmitting(false)
+    return days
   }
 
+  const lastSevenDays = getLastSevenDays()
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center space-x-4">
-          <div className="bg-primary-100 rounded-full p-3">
-            <User className="w-6 h-6 text-primary-600" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        {/* Welcome Section */}
+        <section className="bg-white  p-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-[#E8175D]  flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                Welcome back, {profile?.full_name || 'there'}!
+              </h1>
+              <p className="text-gray-600">Ready to log your workout routine?</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome back, {profile?.full_name || 'there'}!
-            </h1>
-            <p className="text-gray-600">Ready to log your workout routine?</p>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Add Routine Form */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Today's Routine
-        </h2>
-        <form onSubmit={handleAddRoutine} className="space-y-4">
-          <textarea
-            value={routineInput}
-            onChange={(e) => setRoutineInput(e.target.value)}
-            placeholder="Describe your workout routine for today..."
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-          />
-          <button
-            type="submit"
-            disabled={submitting || !routineInput.trim()}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {submitting ? 'Adding...' : 'Add Routine'}
-          </button>
-        </form>
-      </section>
+        {/* Routine Form */}
+        <RoutineForm />
 
-      {/* Recent Routines */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Recent Routines (Last 7 Days)
-          </h2>
-          <Calendar className="w-5 h-5 text-gray-400" />
-        </div>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading routines...</p>
+        {/* Last 7 Days */}
+        <section className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Last 7 Days
+            </h2>
+            <div className="w-10 h-10 bg-[#E8175D] rounded-full flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
           </div>
-        ) : routines.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No routines logged yet. Add your first routine above!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {routines.map((routine) => (
-              <div
-                key={routine._id || routine.id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-sm font-medium text-primary-600">
-                    {format(parseISO(routine.date), 'EEEE, MMMM d, yyyy')}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {format(parseISO(routine.created_at), 'h:mm a')}
-                  </span>
-                </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{routine.content}</p>
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="relative mx-auto w-8 h-8 mb-3">
+                <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-[#E8175D] border-t-transparent animate-spin"></div>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+              <p className="text-gray-600 text-sm">Loading your workout history...</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {lastSevenDays.map((day) => (
+                <div
+                  key={day.date}
+                  className="relative bg-white text-black px-8 py-4 rounded-full transition-all duration-200 cursor-pointer border border-gray-200 shadow-md hover:shadow-lg hover:bg-[#E8175D]"
+                  onClick={() => {
+                    console.log('Opening modal for:', day.date, day.routine)
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        {day.hasRoutine ? (
+                          <div className="w-8 h-8 bg-[#E8175D] rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <div className="w-4 h-4 border border-gray-400 rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <span className="font-semibold capitalize text-base block text-black">
+                          {day.dayName}
+                        </span>
+                        <span className="text-gray-500 text-xs">
+                          {format(parseISO(day.date), 'MMM d')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {day.hasRoutine ? (
+                        <div className="px-3 py-1 bg-[#E8175D] text-white rounded-full text-xs font-medium">
+                          View
+                        </div>
+                      ) : (
+                        <div className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                          {/* Removed 'Add' text */}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {day.hasRoutine && day.routine && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="grid grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <span className="text-gray-500 block">Type</span>
+                          <span className="font-medium text-black">{day.routine.type}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Duration</span>
+                          <span className="font-medium text-black">{day.routine.duration}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Exercises</span>
+                          <span className="font-medium text-black">{day.routine.exercises?.length || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }
