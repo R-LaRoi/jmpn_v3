@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from './hooks/useAuth';
 
-export default function RoutineForm() {
+// Move the interface to the top of the file
+interface RoutineFormProps {
+  onRoutineSaved?: () => void;
+}
+
+// Update the component declaration to accept props
+export default function RoutineForm({ onRoutineSaved }: RoutineFormProps) {
+  const { user, isAuthenticated, loading } = useAuth();
   const [formData, setFormData] = useState({
     duration: '',
     type: '',
@@ -12,18 +20,10 @@ export default function RoutineForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState('');
   const [weekday, setWeekday] = useState('');
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const storedUserId = localStorage.getItem('userId');
-        if (storedUserId) {
-          setUserId(storedUserId);
-        } else {
-          console.log('No userId found in localStorage');
-        }
-
         const currentDate = new Date();
         const options = {
           weekday: 'long',
@@ -50,11 +50,18 @@ export default function RoutineForm() {
     setFormData({ ...formData, [name]: value });
   }
 
-  async function handleSaveRoutine() {
+  // Add this to the RoutineForm component props
+  interface RoutineFormProps {
+    onRoutineSaved?: () => void
+  }
+
+  // In the handleSaveRoutine function, after successful save:
+  const handleSaveRoutine = async () => {
     const { duration, type, level, exercises } = formData;
 
-    if (!userId) {
-      window.alert('Error: User ID not found. Please log in.');
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      window.alert('Error: Please log in to save routines.');
       return;
     }
 
@@ -66,7 +73,7 @@ export default function RoutineForm() {
     const exercisesArray = exercises.split('\n').map(exercise => exercise.trim()).filter(exercise => exercise !== '');
 
     const routineData = {
-      userId: userId,
+      userId: user._id, // Use the authenticated user's ID
       duration: duration,
       type: type,
       level: level,
@@ -81,7 +88,13 @@ export default function RoutineForm() {
     try {
       const response = await axios.post(
         'http://localhost:8000/save-routine',
-        routineData
+        routineData,
+        {
+          withCredentials: true, // Important: Include cookies for authentication
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
       console.log(response.data);
       window.alert('Submitted: Routine saved successfully!');
@@ -93,10 +106,30 @@ export default function RoutineForm() {
       });
     } catch (error) {
       console.error(error);
-      window.alert('Error: Failed to save routine. Please try again.');
+      if (error.response?.status === 401) {
+        window.alert('Error: Please log in to save routines.');
+      } else if (error.response?.status === 403) {
+        window.alert('Error: Access denied.');
+      } else {
+        window.alert('Error: Failed to save routine. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="text-center p-4">
+        <p>Please log in to create and save routines.</p>
+      </div>
+    );
   }
 
   return (
@@ -109,7 +142,7 @@ export default function RoutineForm() {
           {weekday}
         </div>
       </div>
-      
+
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
@@ -127,7 +160,7 @@ export default function RoutineForm() {
             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#E8175D] focus:ring-2 focus:ring-[#E8175D] focus:ring-opacity-20 transition-all duration-200 text-gray-900 placeholder-gray-500"
           />
         </div>
-        
+
         <input
           type="text"
           placeholder="Level (e.g., Beginner, Intermediate)"
@@ -135,7 +168,7 @@ export default function RoutineForm() {
           onChange={(e) => handleChange('level', e.target.value)}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#E8175D] focus:ring-2 focus:ring-[#E8175D] focus:ring-opacity-20 transition-all duration-200 text-gray-900 placeholder-gray-500"
         />
-        
+
         <textarea
           placeholder="Exercises (e.g., Pushups, Squats)\n(Enter each exercise on a new line)"
           rows={4}
@@ -143,7 +176,7 @@ export default function RoutineForm() {
           onChange={(e) => handleChange('exercises', e.target.value)}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#E8175D] focus:ring-2 focus:ring-[#E8175D] focus:ring-opacity-20 transition-all duration-200 text-gray-900 placeholder-gray-500 resize-none"
         />
-        
+
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-[#E8175D] rounded-full"></div>

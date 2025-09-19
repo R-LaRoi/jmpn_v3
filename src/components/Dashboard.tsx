@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Calendar, User } from 'lucide-react'
 import { format, parseISO, subDays } from 'date-fns'
 import { useRoutines, Routine } from './hooks/useRoutines'
@@ -13,8 +13,12 @@ interface DayData {
 }
 
 export function Dashboard() {
-  const { routines, loading } = useRoutines()
+  const { routines, loading, refreshRoutines } = useRoutines()
   const { profile } = useProfile()
+  
+  // Add modal state variables
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null)
 
   // Generate last 7 days
   const getLastSevenDays = (): DayData[] => {
@@ -39,6 +43,11 @@ export function Dashboard() {
     return days
   }
 
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedRoutine(null)
+  }
+
   const lastSevenDays = getLastSevenDays()
 
   return (
@@ -60,7 +69,7 @@ export function Dashboard() {
         </section>
 
         {/* Routine Form */}
-        <RoutineForm />
+        <RoutineForm onRoutineSaved={refreshRoutines} />
 
         {/* Last 7 Days */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
@@ -88,7 +97,12 @@ export function Dashboard() {
                   key={day.date}
                   className="relative bg-white text-black px-8 py-4 rounded-full transition-all duration-200 cursor-pointer border border-gray-200 shadow-md hover:shadow-lg hover:bg-[#E8175D]"
                   onClick={() => {
-                    console.log('Opening modal for:', day.date, day.routine)
+                    if (day.routine) {
+                      // Add state management for modal visibility
+                      setIsModalOpen(true);
+                      // Pass the routine data to modal component
+                      setSelectedRoutine(day.routine);
+                    }
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -153,6 +167,52 @@ export function Dashboard() {
             </div>
           )}
         </section>
+        
+        {/* Modal for displaying routine details */}
+        {isModalOpen && selectedRoutine && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Workout Details</h3>
+                <button 
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <span className="font-medium text-gray-700">Type:</span>
+                  <span className="ml-2">{selectedRoutine.type}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Duration:</span>
+                  <span className="ml-2">{selectedRoutine.duration}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Level:</span>
+                  <span className="ml-2">{selectedRoutine.level}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Date:</span>
+                  <span className="ml-2">{format(parseISO(selectedRoutine.date), 'MMMM d, yyyy')}</span>
+                </div>
+                {selectedRoutine.exercises && selectedRoutine.exercises.length > 0 && (
+                  <div>
+                    <span className="font-medium text-gray-700">Exercises:</span>
+                    <ul className="ml-2 mt-1 space-y-1">
+                      {selectedRoutine.exercises.map((exercise, index) => (
+                        <li key={index} className="text-sm text-gray-600">• {exercise}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

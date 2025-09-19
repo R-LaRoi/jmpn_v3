@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from './useAuth'
 
 export type Routine = {
   _id?: string
@@ -15,31 +16,42 @@ export type Routine = {
 }
 
 export function useRoutines() {
+  const { user, isAuthenticated } = useAuth()
   const [routines, setRoutines] = useState<Routine[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setLoading(true)
-    fetch('/api/routines', {
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch routines')
-        return res.json()
-      })
-      .then((data) => setRoutines(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
+  const fetchRoutines = async () => {
+    if (!isAuthenticated || !user?._id) {
+      setLoading(false)
+      return
+    }
 
-  const addRoutine = async (content: string) => {
+    try {
+      const response = await fetch(`/api/weekly-routines/${user._id}`, {
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setRoutines(data)
+      } else {
+        setError('Failed to fetch routines')
+      }
+    } catch (err) {
+      setError('Failed to fetch routines')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addRoutine = async (routineData: Partial<Routine>) => {
     try {
       const res = await fetch('/api/routines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(routineData),
       })
       if (!res.ok) throw new Error('Failed to add routine')
       const newRoutine = await res.json()
@@ -50,9 +62,25 @@ export function useRoutines() {
     }
   }
 
-  const fetchMonthlyRoutines = async (date: Date) => {
-
+  const refreshRoutines = () => {
+    fetchRoutines()
   }
 
-  return { routines, loading, error, addRoutine, fetchMonthlyRoutines }
+  const fetchMonthlyRoutines = async (date: Date) => {
+    // Implementation for monthly routines if needed
+    console.log('Fetching monthly routines for:', date)
+  }
+
+  useEffect(() => {
+    fetchRoutines()
+  }, [isAuthenticated, user])
+
+  return {
+    routines,
+    loading,
+    error,
+    addRoutine,
+    fetchMonthlyRoutines,
+    refreshRoutines
+  }
 }

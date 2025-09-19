@@ -1,3 +1,9 @@
+import axios from 'axios';
+
+// Configure axios to always include credentials
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = 'http://localhost:8000';
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
